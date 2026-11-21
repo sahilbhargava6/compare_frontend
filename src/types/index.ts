@@ -75,16 +75,18 @@ export interface WatchlistItem {
   };
 }
 
-export interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  preferences: {
-    skin_type?: string;
-    allergies?: string[];
-    skin_health_score?: number;
-    primary_concerns?: string[];
-    metrics?: Partial<SkinMetrics>;
-    last_skin_scan?: string;
-  };
+export interface ProductComparisonMetric {
+  attribute: string;
+  winner: 'product_a' | 'product_b' | 'tie';
+  explanation: string;
+}
+
+export interface ProductComparisonResult {
+  product_a: ScrapedProduct;
+  product_b: ScrapedProduct;
+  overall_verdict: string;
+  best_for_user_reason: string;
+  active_ingredients_comparison: string[];
+  price_difference_percentage: number;
+  metrics: ProductComparisonMetric[];
 }

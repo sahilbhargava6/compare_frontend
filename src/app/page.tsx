@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import MobileFaceSkinScanner from "@/components/MobileFaceSkinScanner";
 import DiagnosticReportView from "@/components/DiagnosticReportView";
+import ProductCompareView from "@/components/ProductCompareView";
 import ProductResultCard from "@/components/ProductResultCard";
 import WatchlistDrawer from "@/components/WatchlistDrawer";
 import { SkinDiagnosis, ScrapedProduct, AiCuration } from "@/types";
 
 export default function MobileApp() {
-  const [activeTab, setActiveTab] = useState<"scan" | "report" | "track" | "watchlist">("scan");
+  const [activeTab, setActiveTab] = useState<"scan" | "compare" | "report" | "track" | "watchlist">("compare");
 
   // State for Skin Diagnosis
   const [diagnosis, setDiagnosis] = useState<SkinDiagnosis | null>(null);
@@ -130,7 +131,7 @@ export default function MobileApp() {
     }
   };
 
-  const handleAddToWatchlist = async (targetPrice: number) => {
+  const handleAddToWatchlist = async (productUrl: string, targetPrice: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
       await fetch(`${apiUrl}/api/watchlist`, {
@@ -176,18 +177,18 @@ export default function MobileApp() {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-serif tracking-widest uppercase font-black text-white text-sm">DIOR</span>
+                <span className="font-serif tracking-widest uppercase font-black text-white text-sm">COMPARE</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-300 text-[9px] font-bold tracking-widest uppercase">
-                  SKIN AI
+                  AI PULSE
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400">Mobile Skincare Scanner</p>
+              <p className="text-[10px] text-zinc-400">Price Comparison & Skin AI</p>
             </div>
           </div>
 
           {diagnosis && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px]">
-              <span className="text-zinc-400">Score:</span>
+              <span className="text-zinc-400">Skin:</span>
               <span className="font-bold text-amber-400">{diagnosis.skin_health_score}/100</span>
             </div>
           )}
@@ -196,7 +197,14 @@ export default function MobileApp() {
         {/* Scrollable Mobile Content Area */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
           
-          {/* TAB 1: Mobile Scanner */}
+          {/* TAB 1: Product Comparison Engine (Original Core Feature) */}
+          {activeTab === "compare" && (
+            <ProductCompareView
+              onAddToWatchlist={(url, price) => handleAddToWatchlist(url, price)}
+            />
+          )}
+
+          {/* TAB 2: Mobile Scanner */}
           {activeTab === "scan" && (
             <div className="space-y-4">
               <div className="text-center px-2 space-y-1">
@@ -210,7 +218,7 @@ export default function MobileApp() {
             </div>
           )}
 
-          {/* TAB 2: Clinical Diagnostic Report */}
+          {/* TAB 3: Clinical Diagnostic Report */}
           {activeTab === "report" && (
             <div className="space-y-4">
               {diagnosis ? (
@@ -239,14 +247,14 @@ export default function MobileApp() {
             </div>
           )}
 
-          {/* TAB 3: Price Tracker & Waterfall Ingestion */}
+          {/* TAB 4: Price Tracker & Waterfall Ingestion */}
           {activeTab === "track" && (
             <div className="space-y-4">
               {/* URL Input Box */}
               <div className="p-4 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-md space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>🔍</span> Track Product Price
+                    <span>🔍</span> Single Product Price Tracker
                   </span>
                   <div className="flex gap-1 text-[10px]">
                     <button
@@ -297,7 +305,7 @@ export default function MobileApp() {
                 <ProductResultCard
                   product={scrapedProduct}
                   curation={curation || undefined}
-                  onAddToWatchlist={handleAddToWatchlist}
+                  onAddToWatchlist={(price) => handleAddToWatchlist(scrapedProduct.canonical_url, price)}
                 />
               ) : (
                 <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 text-center space-y-2">
@@ -311,7 +319,7 @@ export default function MobileApp() {
             </div>
           )}
 
-          {/* TAB 4: Active Watchlists */}
+          {/* TAB 5: Active Watchlists */}
           {activeTab === "watchlist" && (
             <div className="space-y-4">
               <WatchlistDrawer refreshTrigger={watchlistRefresh} />
@@ -320,11 +328,22 @@ export default function MobileApp() {
 
         </div>
 
-        {/* Mobile Bottom Navigation Bar (iOS / Android Home Indicator safe area) */}
+        {/* Mobile Bottom Navigation Bar (5-Tab Native Layout) */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
-          <div className="w-full max-w-md bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-900 px-6 pt-2 pb-5 flex items-center justify-between pointer-events-auto">
+          <div className="w-full max-w-md bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-900 px-4 pt-2 pb-5 flex items-center justify-between pointer-events-auto">
             
-            {/* Nav 1: Scan */}
+            {/* Nav 1: Compare (Core Feature) */}
+            <button
+              onClick={() => setActiveTab("compare")}
+              className={`flex flex-col items-center gap-1 transition-colors ${
+                activeTab === "compare" ? "text-amber-400" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="text-base">⚖️</span>
+              <span className="text-[9px] font-semibold">Compare</span>
+            </button>
+
+            {/* Nav 2: Scan */}
             <button
               onClick={() => setActiveTab("scan")}
               className={`flex flex-col items-center gap-1 transition-colors ${
@@ -332,10 +351,10 @@ export default function MobileApp() {
               }`}
             >
               <span className="text-base">📷</span>
-              <span className="text-[10px] font-semibold">Scanner</span>
+              <span className="text-[9px] font-semibold">Scanner</span>
             </button>
 
-            {/* Nav 2: Report */}
+            {/* Nav 3: Report */}
             <button
               onClick={() => setActiveTab("report")}
               className={`flex flex-col items-center gap-1 transition-colors ${
@@ -343,10 +362,10 @@ export default function MobileApp() {
               }`}
             >
               <span className="text-base">📊</span>
-              <span className="text-[10px] font-semibold">Report</span>
+              <span className="text-[9px] font-semibold">Report</span>
             </button>
 
-            {/* Nav 3: Track */}
+            {/* Nav 4: Track */}
             <button
               onClick={() => setActiveTab("track")}
               className={`flex flex-col items-center gap-1 transition-colors ${
@@ -354,10 +373,10 @@ export default function MobileApp() {
               }`}
             >
               <span className="text-base">🔍</span>
-              <span className="text-[10px] font-semibold">Track</span>
+              <span className="text-[9px] font-semibold">Track</span>
             </button>
 
-            {/* Nav 4: Watchlist */}
+            {/* Nav 5: Watchlist */}
             <button
               onClick={() => setActiveTab("watchlist")}
               className={`flex flex-col items-center gap-1 transition-colors ${
@@ -365,7 +384,7 @@ export default function MobileApp() {
               }`}
             >
               <span className="text-base">📋</span>
-              <span className="text-[10px] font-semibold">Watchlist</span>
+              <span className="text-[9px] font-semibold">Watchlist</span>
             </button>
 
           </div>
