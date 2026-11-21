@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import FaceSkinScanner from "@/components/FaceSkinScanner";
+import MobileFaceSkinScanner from "@/components/MobileFaceSkinScanner";
 import DiagnosticReportView from "@/components/DiagnosticReportView";
 import ProductResultCard from "@/components/ProductResultCard";
 import WatchlistDrawer from "@/components/WatchlistDrawer";
 import { SkinDiagnosis, ScrapedProduct, AiCuration } from "@/types";
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<"skin_scanner" | "price_tracker" | "watchlist">("skin_scanner");
+export default function MobileApp() {
+  const [activeTab, setActiveTab] = useState<"scan" | "report" | "track" | "watchlist">("scan");
 
   // State for Skin Diagnosis
   const [diagnosis, setDiagnosis] = useState<SkinDiagnosis | null>(null);
@@ -23,7 +23,11 @@ export default function Home() {
   // Watchlist trigger counter
   const [watchlistRefresh, setWatchlistRefresh] = useState(0);
 
-  // Quick URL sample setter
+  const handleDiagnosisDone = (diag: SkinDiagnosis) => {
+    setDiagnosis(diag);
+    setActiveTab("report");
+  };
+
   const setQuickSample = (platform: "nykaa" | "amazon" | "flipkart") => {
     if (platform === "nykaa") {
       setUrlInput("https://www.nykaa.com/minimalist-10percent-niacinamide/p/1029384");
@@ -34,7 +38,6 @@ export default function Home() {
     }
   };
 
-  // Submit product URL for 3-tier asynchronous waterfall ingestion
   const handleIngestUrl = async (urlToIngest?: string) => {
     const targetUrl = urlToIngest || urlInput;
     if (!targetUrl) return;
@@ -51,20 +54,15 @@ export default function Home() {
       });
 
       if (res.status === 200) {
-        // Returned directly from Redis Cache
         const json = await res.json();
         setScrapedProduct(json.data.product);
         setCuration(json.data.curation);
         setIngestionMessage("✓ Product retrieved instantly from Redis Cache!");
-        setActiveTab("price_tracker");
+        setActiveTab("track");
       } else if (res.status === 202) {
-        // Dispatched to Laravel Queue Job
         const json = await res.json();
-        setIngestionMessage(
-          `Dispatched to Queue (${json.websocket_channel}). Scraping via Tier 1 Affiliate / Tier 2 Rainforest / Tier 3 ScraperAPI...`
-        );
+        setIngestionMessage(`Queued (${json.websocket_channel}). Running 3-Tier Scraper...`);
 
-        // Fallback simulation for live UI demonstration
         setTimeout(() => {
           setScrapedProduct({
             title: "Minimalist 10% Niacinamide Serum with Zinc PCA",
@@ -79,33 +77,32 @@ export default function Home() {
           setCuration({
             personalized_analysis: {
               pros: [
-                "Contains 1% Zinc PCA which regulates sebum for your diagnosed combination skin type.",
+                "Contains 1% Zinc PCA which regulates sebum for your diagnosed combination skin.",
                 "Fragrance-free formula matching your profile sensitivity guidelines.",
               ],
               cons: [
-                "High 10% concentration may require gradual 2-night introduction to prevent purging.",
+                "High 10% concentration: introduce 2-3 nights per week to prevent temporary purging.",
               ],
             },
             recommended_alternatives: [
               {
                 product_id: "prod_the_ordinary",
                 justification:
-                  "The Ordinary 10% + Zinc 1% (₹550) on Nykaa features a lighter water-gel texture optimized for humid conditions.",
+                  "The Ordinary 10% + Zinc 1% (₹550) on Nykaa features an oil-free water-gel consistency.",
               },
               {
                 product_id: "prod_plum_niacinamide",
                 justification:
-                  "Plum 10% with Fermented Rice Water (₹499) provides extra barrier lipid hydration for dehydrated T-zones.",
+                  "Plum 10% with Fermented Rice Water (₹499) enhances lipid moisture retention.",
               },
             ],
           });
 
-          setIngestionMessage("✓ Extraction and AI Curation complete via WebSocket broadcast!");
-          setActiveTab("price_tracker");
+          setIngestionMessage("✓ Extraction and AI Curation complete!");
+          setActiveTab("track");
         }, 1200);
       }
     } catch {
-      // Offline fallback
       setScrapedProduct({
         title: "Minimalist 10% Niacinamide Serum with Zinc PCA",
         brand: "Minimalist",
@@ -127,13 +124,12 @@ export default function Home() {
           },
         ],
       });
-      setActiveTab("price_tracker");
+      setActiveTab("track");
     } finally {
       setIsIngesting(false);
     }
   };
 
-  // Add item to Watchlist
   const handleAddToWatchlist = async (targetPrice: number) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -147,207 +143,235 @@ export default function Home() {
         }),
       });
     } catch {
-      // Local fallback
+      // offline fallback
     }
     setWatchlistRefresh((prev) => prev + 1);
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-amber-500 selection:text-black">
-      {/* Top Luxury DIOR-Inspired Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/70 border-b border-zinc-800/80 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg">
+    <div className="min-h-screen bg-black text-zinc-100 flex justify-center selection:bg-amber-500 selection:text-black">
+      {/* Mobile Device Frame Container (max-w-md, full height, notch & bottom bar) */}
+      <div className="w-full max-w-md min-h-screen bg-zinc-950 flex flex-col justify-between border-x border-zinc-900 shadow-2xl relative">
+        
+        {/* iOS / Android Status Bar & Dynamic Island */}
+        <div className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-md px-6 pt-3 pb-2 flex items-center justify-between text-xs text-zinc-400">
+          <span className="font-semibold text-white text-xs">9:41</span>
+          
+          {/* Dynamic Island / Notch */}
+          <div className="w-24 h-4 bg-black rounded-full flex items-center justify-center">
+            <div className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[11px]">
+            <span>5G</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        {/* Mobile Header */}
+        <header className="px-5 py-3 flex items-center justify-between border-b border-zinc-900">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-pink-600 flex items-center justify-center text-white font-serif font-black text-sm shadow-md">
               ✦
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif tracking-widest uppercase font-black text-white text-base">DIOR</span>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-bold tracking-widest uppercase">
-                  SKINCARE AI
+              <div className="flex items-center gap-1.5">
+                <span className="font-serif tracking-widest uppercase font-black text-white text-sm">DIOR</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-300 text-[9px] font-bold tracking-widest uppercase">
+                  SKIN AI
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400">Biometric Facial Diagnostics & E-Commerce Price Tracker</p>
+              <p className="text-[10px] text-zinc-400">Mobile Skincare Scanner</p>
             </div>
           </div>
 
-          {/* Navigation Pill Bar */}
-          <nav className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs">
-            <button
-              onClick={() => setActiveTab("skin_scanner")}
-              className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                activeTab === "skin_scanner"
-                  ? "bg-gradient-to-r from-amber-500 to-pink-600 text-white shadow-md"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              📷 AI Face Scanner & Cure
-            </button>
-            <button
-              onClick={() => setActiveTab("price_tracker")}
-              className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                activeTab === "price_tracker"
-                  ? "bg-gradient-to-r from-amber-500 to-pink-600 text-white shadow-md"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              🔍 Price Tracker & Curator
-            </button>
-            <button
-              onClick={() => setActiveTab("watchlist")}
-              className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                activeTab === "watchlist"
-                  ? "bg-gradient-to-r from-amber-500 to-pink-600 text-white shadow-md"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              📋 6-Hour Cron Watchlists
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* TAB 1: AI FACE SCANNER & CURE */}
-        {activeTab === "skin_scanner" && (
-          <div className="space-y-8">
-            <div className="text-center max-w-2xl mx-auto space-y-2">
-              <span className="text-[11px] font-mono tracking-widest uppercase text-amber-400 font-bold">
-                DIOR LUXURY SKINCARE EXPERIENCE
-              </span>
-              <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                Record Your Face for AI Dermatological Analysis
-              </h2>
-              <p className="text-sm text-zinc-400">
-                Our computer vision model diagnoses sebum, TEWL hydration, micro-vascular redness, and biological texture, prescribing a personalized 3-step cure with real-time price tracking.
-              </p>
+          {diagnosis && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px]">
+              <span className="text-zinc-400">Score:</span>
+              <span className="font-bold text-amber-400">{diagnosis.skin_health_score}/100</span>
             </div>
+          )}
+        </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left: Interactive Face Scanner */}
-              <div className="lg:col-span-5">
-                <FaceSkinScanner
-                  onDiagnosisComplete={(diag) => {
-                    setDiagnosis(diag);
+        {/* Scrollable Mobile Content Area */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
+          
+          {/* TAB 1: Mobile Scanner */}
+          {activeTab === "scan" && (
+            <div className="space-y-4">
+              <div className="text-center px-2 space-y-1">
+                <h1 className="text-lg font-bold text-white tracking-tight">Facial Biometric Scanner</h1>
+                <p className="text-xs text-zinc-400">
+                  Align your face to diagnose moisture, sebum, erythema, and receive instant product cures.
+                </p>
+              </div>
+
+              <MobileFaceSkinScanner onDiagnosisComplete={handleDiagnosisDone} />
+            </div>
+          )}
+
+          {/* TAB 2: Clinical Diagnostic Report */}
+          {activeTab === "report" && (
+            <div className="space-y-4">
+              {diagnosis ? (
+                <DiagnosticReportView
+                  diagnosis={diagnosis}
+                  onTrackProduct={(url) => {
+                    setUrlInput(url);
+                    handleIngestUrl(url);
                   }}
                 />
-              </div>
-
-              {/* Right: Real-time Diagnostic Clinical Report & Cures */}
-              <div className="lg:col-span-7">
-                {diagnosis ? (
-                  <DiagnosticReportView
-                    diagnosis={diagnosis}
-                    onTrackProduct={(url) => {
-                      setUrlInput(url);
-                      handleIngestUrl(url);
-                    }}
-                  />
-                ) : (
-                  <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 text-center space-y-3">
-                    <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mx-auto text-2xl">
-                      📷
-                    </div>
-                    <h3 className="text-base font-bold text-white">Scanner Standing By</h3>
-                    <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                      Click <strong className="text-amber-400">&quot;Record & Analyze Face&quot;</strong> in the scanner viewport to generate your personalized clinical report and product cures.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: PRICE TRACKER & ASYNC CURATION */}
-        {activeTab === "price_tracker" && (
-          <div className="space-y-8">
-            {/* URL Submission Hero */}
-            <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-xl space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>🔍</span> Track & Curate E-Commerce Product
-                  </h3>
+              ) : (
+                <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 text-center space-y-3 my-8">
+                  <span className="text-4xl">📷</span>
+                  <h3 className="text-sm font-bold text-white">No Scan Performed Yet</h3>
                   <p className="text-xs text-zinc-400">
-                    Paste an Amazon, Nykaa, or Flipkart link for 3-tier asynchronous waterfall extraction
+                    Switch to the Scan tab and capture your face to generate your personalized clinical report.
                   </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <span>Quick demos:</span>
                   <button
-                    onClick={() => setQuickSample("nykaa")}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
+                    onClick={() => setActiveTab("scan")}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 text-white font-bold text-xs uppercase"
                   >
-                    Nykaa
+                    Open Face Scanner
                   </button>
-                  <button
-                    onClick={() => setQuickSample("amazon")}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
-                  >
-                    Amazon
-                  </button>
-                  <button
-                    onClick={() => setQuickSample("flipkart")}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
-                  >
-                    Flipkart
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="Paste URL (e.g., https://www.amazon.in/dp/...)"
-                  className="flex-1 px-4 py-3 rounded-2xl bg-zinc-950 border border-zinc-800 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-                <button
-                  disabled={isIngesting}
-                  onClick={() => handleIngestUrl()}
-                  className="px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-pink-600 hover:opacity-90 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50"
-                >
-                  {isIngesting ? "Extracting..." : "Track & Curate"}
-                </button>
-              </div>
-
-              {ingestionMessage && (
-                <div className="pt-2 text-xs font-mono text-amber-400 border-t border-zinc-800">
-                  {ingestionMessage}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Product Card & AI Curation */}
-            {scrapedProduct ? (
-              <ProductResultCard
-                product={scrapedProduct}
-                curation={curation || undefined}
-                onAddToWatchlist={handleAddToWatchlist}
-              />
-            ) : (
-              <div className="p-8 rounded-3xl bg-zinc-900 border border-zinc-800 text-center space-y-2">
-                <span className="text-3xl">🛍</span>
-                <h4 className="text-sm font-bold text-white">No Product Selected</h4>
-                <p className="text-xs text-zinc-400">
-                  Paste a product URL above to analyze its price, pros/cons, and intelligent Pinecone alternatives.
-                </p>
+          {/* TAB 3: Price Tracker & Waterfall Ingestion */}
+          {activeTab === "track" && (
+            <div className="space-y-4">
+              {/* URL Input Box */}
+              <div className="p-4 rounded-3xl bg-zinc-900 border border-zinc-800 shadow-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>🔍</span> Track Product Price
+                  </span>
+                  <div className="flex gap-1 text-[10px]">
+                    <button
+                      onClick={() => setQuickSample("nykaa")}
+                      className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                    >
+                      Nykaa
+                    </button>
+                    <button
+                      onClick={() => setQuickSample("amazon")}
+                      className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                    >
+                      Amazon
+                    </button>
+                    <button
+                      onClick={() => setQuickSample("flipkart")}
+                      className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                    >
+                      Flipkart
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder="Paste product link..."
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                  <button
+                    disabled={isIngesting}
+                    onClick={() => handleIngestUrl()}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 text-white font-bold text-xs whitespace-nowrap disabled:opacity-50"
+                  >
+                    {isIngesting ? "..." : "Track"}
+                  </button>
+                </div>
+
+                {ingestionMessage && (
+                  <p className="text-[10px] font-mono text-amber-400 pt-1">{ingestionMessage}</p>
+                )}
               </div>
-            )}
-          </div>
-        )}
 
-        {/* TAB 3: WATCHLIST DASHBOARD */}
-        {activeTab === "watchlist" && (
-          <div className="space-y-6">
-            <WatchlistDrawer refreshTrigger={watchlistRefresh} />
+              {/* Scraped Product Result */}
+              {scrapedProduct ? (
+                <ProductResultCard
+                  product={scrapedProduct}
+                  curation={curation || undefined}
+                  onAddToWatchlist={handleAddToWatchlist}
+                />
+              ) : (
+                <div className="p-6 rounded-3xl bg-zinc-900 border border-zinc-800 text-center space-y-2">
+                  <span className="text-3xl">🛍</span>
+                  <h4 className="text-xs font-bold text-white">No Product Selected</h4>
+                  <p className="text-[11px] text-zinc-400">
+                    Paste a link above or select a prescribed product from your diagnosis report.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: Active Watchlists */}
+          {activeTab === "watchlist" && (
+            <div className="space-y-4">
+              <WatchlistDrawer refreshTrigger={watchlistRefresh} />
+            </div>
+          )}
+
+        </div>
+
+        {/* Mobile Bottom Navigation Bar (iOS / Android Home Indicator safe area) */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+          <div className="w-full max-w-md bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-900 px-6 pt-2 pb-5 flex items-center justify-between pointer-events-auto">
+            
+            {/* Nav 1: Scan */}
+            <button
+              onClick={() => setActiveTab("scan")}
+              className={`flex flex-col items-center gap-1 transition-colors ${
+                activeTab === "scan" ? "text-amber-400" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="text-base">📷</span>
+              <span className="text-[10px] font-semibold">Scanner</span>
+            </button>
+
+            {/* Nav 2: Report */}
+            <button
+              onClick={() => setActiveTab("report")}
+              className={`flex flex-col items-center gap-1 transition-colors ${
+                activeTab === "report" ? "text-amber-400" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="text-base">📊</span>
+              <span className="text-[10px] font-semibold">Report</span>
+            </button>
+
+            {/* Nav 3: Track */}
+            <button
+              onClick={() => setActiveTab("track")}
+              className={`flex flex-col items-center gap-1 transition-colors ${
+                activeTab === "track" ? "text-amber-400" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="text-base">🔍</span>
+              <span className="text-[10px] font-semibold">Track</span>
+            </button>
+
+            {/* Nav 4: Watchlist */}
+            <button
+              onClick={() => setActiveTab("watchlist")}
+              className={`flex flex-col items-center gap-1 transition-colors ${
+                activeTab === "watchlist" ? "text-amber-400" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="text-base">📋</span>
+              <span className="text-[10px] font-semibold">Watchlist</span>
+            </button>
+
           </div>
-        )}
-      </main>
+        </nav>
+
+      </div>
     </div>
   );
 }
